@@ -1,0 +1,748 @@
+---
+title: "Análisis de datos ambientales"
+author: "Rosario Huertas Henao"
+date: "1/7/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+#Cargamos las librerias
+library(knitr)
+library(dplyr)
+library(magrittr)
+#library(purrr)
+library(tidyr)
+library(stringr)
+library(readr)
+library (ggplot2)
+library(lubridate)
+library(forecast)
+library(tsbox)
+```
+
+# EXTRACCIÓN Y CARGA DE DATOS 
+
+
+## Carga de datos
+```{r}
+datos2018 <- read_delim("datos201812.CSV", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+datos2019 <- read_delim("datos201912.CSV", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+datos2020 <- read_delim("datos202012.CSV", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+datos2021 <- read_delim("datos202103.CSV", 
+    ";", escape_double = FALSE, trim_ws = TRUE)
+```
+
+
+## Descripcion de los datos
+Primero vemos que variables aparecen. Para hacernos una idea de la estructura hacemos un head.
+```{r}
+names(datos2020)
+head(datos2020)
+```
+
+# TRANSFORMACIÓN Y LIMPIEZA DE DATOS
+
+##  Transformacion del formato de los datos de 2020
+
+Calculamos una columna día y una columna valor. Nos quedamos solo con los válidos.
+
+```{r}
+
+datos_2020 <- datos2020 %>% select(-names(datos2020)[str_starts(names(datos2020),"V")])%>%
+  gather(key = "dia", value = "valor", names(datos2020)[str_starts(names(datos2020),"D")]) %>%
+  mutate(dia= substring(dia,2))
+  
+validos_2020 <- datos2020 %>%select(-names(datos2020)[str_starts(names(datos2020),"D")]) %>%
+  gather(key = "dia", value ="validez",
+         names(datos2020)[str_starts(names(datos2020),"V")]) %>% mutate(dia= substring(dia,2))
+
+new_2020 <- inner_join(datos_2020, validos_2020, by = c("ANO", "ESTACION", "MAGNITUD", "MES", "MUNICIPIO", "PROVINCIA", "PUNTO_MUESTREO", "dia")) 
+
+print("La tabla siguiente muestra el numero de registros validos y no validos del año 2020")
+table(new_2020$validez)
+
+new_2020 <- new_2020 %>% filter(validez=="V")
+```
+
+
+Vemos como quedan los datos transformados
+```{r}
+head(new_2020)
+
+```
+
+
+
+## Transformacion del formato de los datos de 2021
+```{r}
+
+datos_2021 <- datos2021 %>% select(-names(datos2021)[str_starts(names(datos2021),"V")])%>%
+  gather(key = "dia", value = "valor", names(datos2020)[str_starts(names(datos2021),"D")]) %>%
+  mutate(dia= substring(dia,2))
+  
+validos_2021 <- datos2021 %>%select(-names(datos2021)[str_starts(names(datos2021),"D")]) %>%
+  gather(key = "dia", value ="validez",
+         names(datos2021)[str_starts(names(datos2021),"V")]) %>% mutate(dia= substring(dia,2))
+
+new_2021 <- inner_join(datos_2021, validos_2021, by = c("ANO", "ESTACION", "MAGNITUD", "MES", "MUNICIPIO", "PROVINCIA", "PUNTO_MUESTREO", "dia"))
+
+print("La tabla siguiente muestra el numero de registros validos y no validos del año 2021")
+table(new_2021$validez)
+
+new_2021 <- new_2021%>% filter(validez=="V")
+
+```
+
+
+```{r}
+head(new_2021)
+```
+
+
+
+
+## Transformacion del formato de los datos de 2018
+
+```{r}
+
+datos_2018 <- datos2018 %>% select(-names(datos2018)[str_starts(names(datos2018),"V")])%>%
+  gather(key = "dia", value = "valor", names(datos2018)[str_starts(names(datos2018),"D")]) %>%
+  mutate(dia= substring(dia,2))
+  
+validos_2018 <- datos2018 %>%select(-names(datos2018)[str_starts(names(datos2018),"D")]) %>%
+  gather(key = "dia", value ="validez",
+         names(datos2018)[str_starts(names(datos2018),"V")]) %>% mutate(dia= substring(dia,2))
+
+new_2018 <- inner_join(datos_2018, validos_2018, by = c("ANO", "ESTACION", "MAGNITUD", "MES", "MUNICIPIO", "PROVINCIA", "PUNTO_MUESTREO", "dia"))
+
+print("La tabla siguiente muestra el numero de registros validos y no validos del año 2018")
+table(new_2018$validez)
+
+new_2018 <- new_2018%>% filter(validez=="V")
+
+```
+
+```{r}
+head(new_2018)
+```
+
+
+##  Transformacion del formato de los datos de 2019
+```{r}
+
+datos_2019 <- datos2019 %>% select(-names(datos2019)[str_starts(names(datos2019),"V")])%>%
+  gather(key = "dia", value = "valor", names(datos2019)[str_starts(names(datos2019),"D")]) %>%
+  mutate(dia= substring(dia,2))
+  
+validos_2019 <- datos2019 %>%select(-names(datos2019)[str_starts(names(datos2019),"D")]) %>%
+  gather(key = "dia", value ="validez",
+         names(datos2019)[str_starts(names(datos2019),"V")]) %>% mutate(dia= substring(dia,2))
+
+new_2019 <- inner_join(datos_2019, validos_2019, by = c("ANO", "ESTACION", "MAGNITUD", "MES", "MUNICIPIO", "PROVINCIA", "PUNTO_MUESTREO", "dia"))
+
+print("La tabla siguiente muestra el numero de registros validos y no validos del año 2019")
+table(new_2019$validez)
+
+new_2019 <- new_2019%>% filter(validez=="V")
+
+```
+
+
+```{r}
+head(new_2019)
+```
+
+## Unificamos todos los registros históricos en un único dataframe:
+
+```{r}
+data <- rbind(new_2018, new_2019)
+data <- rbind(data, new_2020)
+data <- rbind(data, new_2021)
+View(data)
+```
+
+```{r}
+# Descargamos en un único fichero csv los datos
+write.csv(data, "data.csv")
+```
+
+
+
+```{r}
+str(data)
+```
+
+
+```{r}
+print("Provincias estudiadas")
+unique(data$PROVINCIA)
+print("Municipios estudiadas")
+unique(data$MUNICIPIO)
+print("ESTACIONES estudiadas")
+length(unique(data$ESTACION))
+print("MAGNITUDES estudiadas")
+length(unique(data$MAGNITUD))
+print("PUNTO_MUESTREO (combinaciones) estudiadas")
+length(unique(data$PUNTO_MUESTREO))
+
+```
+
+
+## Construimos la columna de fechas
+Eliminamos columnas dia, mes, año porque las cambiamos por fecha y validez, provincia y municipio porque solamente tienen un único valor
+
+```{r, echo=FALSE}
+data %<>% mutate(fecha=as.Date(paste(as.character(ANO), MES, dia, sep='-')),
+                 valor=as.numeric(valor)) %>% 
+  select(-ANO, -MES, -dia, -validez, -PROVINCIA, -MUNICIPIO)
+```
+
+## Fechas de inicio y fin de los datos
+```{r}
+min(data$fecha)
+max(data$fecha)
+```
+
+## Separamos el punto de muestreo en estacion y forma de medida y quitamos punto de muestreo porque ya está separada su informacion
+No nos quedamos con la tecnica, porque se ha usado siempre la de Fluorescencia ultravioleta.(cod. 38)
+Traducimos los codigos a su significaod, magnitudes y formas de medir.
+
+```{r}
+data %<>% separate(PUNTO_MUESTREO, c("cod_estacion","magnitud","tecnica"), "_") %>% 
+  select( -magnitud)
+
+
+
+MAGNITUD <- c(1,6,7,8,9,10,12,14,20,30,35,37,38,39,42,43,44)
+nombre_magnitud <- c("Dióxido de azufre", 
+                 "Monóxido de carbono", 
+                 "Monoxido de nitrógeno", 
+                 "Dióxido de nitrógeno", 
+                 "Partículas <2.5um",
+                 "Partículas <10um",
+                 "Oxidos de nitrógeno",
+                 "Ozono",
+                 "Tolueno",
+                 "Benceno",
+                 "Etilbenceno",
+                 "Metaxileno",
+                 "Paraxileno",
+                 "Ortosileno",
+                 "Hidrocarburos Totales(Hexano)",
+                 "Metano",
+                 "Hidrocarburos no metanicos (Hexano)")
+
+diccionario <- as.data.frame(MAGNITUD, nombre_magnitud, rownames=FALSE)
+diccionario$nombre_magnitud <- nombre_magnitud
+
+data <- left_join(data, diccionario)
+```
+
+
+
+```{r, echo=FALSE}
+# Cambiamos los nombres de las siguientes columnas
+colnames(data)[colnames(data) == "ESTACION"] <- "estacion"
+colnames(data)[colnames(data) == "MAGNITUD"] <- "magnitud"
+
+head(data)
+```
+ ` 
+
+## Guardamos en un dataframe las estaciones con los que trabajaremos así como los parámetros. Cuantos datos tengo por cada estación y parámetro
+
+```{r, echo=FALSE}
+
+# Contiene las magnitudes que vamos a trabajar 
+df <- data%>%filter(magnitud==8 | magnitud==9 | magnitud == 10 | magnitud == 14)%>%
+            subset(estacion %in% c(8,24,60))
+
+# Creamos la columna nombre de estacion 
+df$nombre_estacion <- recode(df$estacion, "8" = "Escuelas Aguirre", "24" = "Casa de Campo", "60" = "Plaza Tres Olivos")
+
+#df%>%filter(estacion==8 & magnitud==8 & fecha>= "2018-01-02" & fecha < "2018-01-31")
+
+```
+
+
+```{r, echo=FALSE}
+
+df%>%group_by(estacion, magnitud,nombre_magnitud)%>%count()
+```
+
+
+
+
+# Series temporales Representando todas las magnitudes a la vez los puntos de estación 8,24,60
+
+```{r}
+
+puntos<- unique(df$nombre_estacion)
+for (punto in puntos){
+muestra <- df%>% filter(nombre_estacion==punto)
+
+
+plot <- ggplot(muestra, aes(x=fecha, y=valor)) +
+  geom_line(aes(col=as.factor(nombre_magnitud)))+ theme_minimal()+ ggtitle(punto)+
+  xlab("Fecha")+ylab("Valor")+labs(color="Magnitud")
+print(plot)
+}
+
+```
+
+
+# Series temporales Representando la Magnitud 8 - Datos brutos diarios
+
+```{r, error=TRUE}
+
+for (punto in puntos){
+muestra_mag8_brutos <- df%>% filter(nombre_estacion==punto & magnitud==8)
+
+
+plot_8_brutos <- ggplot(muestra_mag8_brutos, aes(x=fecha, y=valor)) +
+  geom_line(color="tomato2")+ theme_minimal()+ ggtitle(punto)+
+  scale_colour_manual(values = c("red"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Dioxido de Nitrógeno")
+print(plot_8_brutos)
+}
+
+
+```
+
+
+# Series temporales Representando la Magnitud 8 - Media Anual 
+
+```{r}
+
+for (punto in puntos){
+muestra_mag8 <- df%>% filter(nombre_estacion==punto & magnitud == 8)
+
+serie_muestra_mag8 <- ts(start= c(2018,1), end=c(2021,1),muestra_mag8$valor, frequency = 1)
+
+
+# Convierte de serie temporal a dataframe
+mm8 <- ts_df(serie_muestra_mag8)
+
+
+plot_8 <- ggplot(mm8, aes(x=time, y=value)) +
+  geom_line(color="tomato2")+theme_minimal()+ ggtitle(punto)+
+  geom_hline(aes(yintercept=40, color="Valor límite media anual"))+
+  scale_colour_manual(values = c("blue"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Dioxido de Nitrógeno")
+  
+print(plot_8)
+}
+
+```
+
+
+
+# Series temporales Representando la Magnitud 9  - Datos brutos diarios
+
+```{r, error=TRUE}
+puntos3 <- c("Escuelas Aguirre", "Casa de Campo")
+for (punto in puntos3){
+muestra_mag9_brutos <- df%>% filter(nombre_estacion==punto & magnitud==9)
+
+
+plot_9_brutos <- ggplot(muestra_mag9_brutos, aes(x=fecha, y=valor)) +
+  geom_line(color="blueviolet")+ theme_minimal()+ ggtitle(punto)+
+  scale_colour_manual(values = c("red"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Particulas<2.5")
+print(plot_9_brutos)
+}
+
+
+```
+
+
+
+# Series temporales Representando la Magnitud 9 - Media Anual 
+
+```{r}
+puntos4 <- c("Escuelas Aguirre", "Casa de Campo")
+
+for (punto in puntos4){
+  
+muestra_mag9 <- df%>% filter(nombre_estacion==punto & magnitud == 9)
+
+ss <- ts(start= c(2018,1), end=c(2021,1), muestra_mag9$valor, frequency = 1)
+
+
+# Convierte de serie temporal a dataframe
+mm9 <- ts_df(ss)
+
+
+plot_9 <- ggplot(mm9, aes(x=time, y=value)) +
+  geom_line(color="blueviolet")+theme_minimal()+ ggtitle(punto)+
+  geom_hline(aes(yintercept=25, color="Valor límite media anual"))+
+  scale_colour_manual(values = c("blue"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Particulas<2.5")
+  
+print(plot_9)
+}
+
+```
+
+
+
+# Series temporales Representando la Magnitud 10 - Datos brutos diarios
+
+```{r}
+for (punto in puntos){
+muestra_mag10 <- df%>% filter(nombre_estacion==punto & magnitud==10)
+
+
+plot_10 <- ggplot(muestra_mag10, aes(x=fecha, y=valor)) +
+  geom_line(color="cornflowerblue")+ theme_minimal()+ ggtitle(punto)+
+  geom_hline(aes(yintercept=50, color="Valor límite media diaria"))+
+  scale_colour_manual(values = c("green"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Particulas<10um")
+print(plot_10)
+
+}
+```
+
+
+
+# Series temporales Representando la Magnitud 10 - Media Anual 
+
+```{r}
+
+#library("tsbox")
+
+for (punto in puntos){
+muestra_mag10 <- df%>% filter(nombre_estacion==punto & magnitud==10)
+
+serie_muestra_mag10 <- ts(start= c(2018,1), end=c(2021,1),muestra_mag10$valor, frequency = 1)
+
+
+# Convierte de serie temporal a dataframe
+mm10 <- ts_df(serie_muestra_mag10)
+
+
+
+
+plot_10 <- ggplot(mm10, aes(x=time, y=value)) +
+  geom_line(color="cornflowerblue")+ theme_minimal()+ ggtitle(punto)+
+  geom_hline(aes(yintercept=40, color="Valor límite media anual"))+
+  scale_colour_manual(values = c("green"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Particulas<10um")
+print(plot_10)
+
+}
+
+```
+
+
+
+# Series temporales Representando la Magnitud 14 - Datos brutos diarios
+
+```{r}
+for (punto in puntos){
+muestra_mag14 <- df%>% filter(nombre_estacion==punto & magnitud==14)
+
+
+plot_14 <- ggplot(muestra_mag14, aes(x=fecha, y=valor)) +
+  geom_line(color="green2")+ theme_minimal()+ ggtitle(punto)+
+   geom_hline(aes(yintercept=120, color="Valor límite media diaria"))+
+  scale_colour_manual(values = c("red"))+labs(color="")+
+  xlab("Fecha")+ylab("Valor Ozono")
+print(plot_14)
+
+}
+```
+
+
+
+# Descomposición de serie temporal mensual para la estación 8, Escuelas Aguirre.
+
+Esta estación se encuentra ubicada entre Calle Alcalá y C/O'Donell. Se trata de una estación de tipo "Urbana tráfico". Hemos representado sus respectivos parámetros que son Dióxido de nitrógeno (8), Partículas <2.5um (9), Particulas <10um (10), Ozono (14).
+
+```{r, echo=FALSE}
+
+df_8 <- df%>%filter(estacion==8) 
+tss_8 <- tapply(df_8$valor, df_8$magnitud, ts, start=c(2018,1), end=c(2021,4), frequency = 12)
+stl_8 <- lapply(tss_8, stl, s.window="periodic", robust=TRUE)
+
+# Estructura interna de la Descomposición
+#str(dcs_8)
+
+
+autoplot(stl_8$`8`, main="Estación 8, Escuelas Aguirre, parámetro Dióxido de Nitrógeno")
+autoplot(stl_8$`9`, main="Estación 8, Escuelas Aguirre, parámetro Partículas <2.5um")
+autoplot(stl_8$`10`, main="Estación 8, Escuelas Aguirre, parámetro Partículas <10um")
+autoplot(stl_8$`14`, main="Estación 8, Escuelas Aguirre, parámetro Ozono")
+
+```
+
+
+
+# Descomposición de serie temporal mensual para la estación 24, Casa Campo. 
+
+Se trata de una estación de tipo "Suburbana". Hemos representado sus respectivos parámetros que son Dióxido de nitrógeno (8), Partículas <2.5um (9), Partículas <10um (10), Ozono (14).
+
+```{r, echo=FALSE}
+
+df_24 <- df%>%filter(estacion==24) 
+tss_24 <- tapply(df_24$valor, df_24$magnitud, ts, start=c(2018,1), end=c(2021,4), frequency = 12)
+stl_24 <- lapply(tss_24, stl, s.window="periodic", robust=TRUE)
+
+
+autoplot(stl_24$`8`, main="Estación 24, Casa de Campo, parámetro Dióxido de Nitrógeno")
+autoplot(stl_24$`9`, main="Estación 24, Casa de Campo, parámetro Partículas <2.5um")
+autoplot(stl_24$`10`,main="Estación 24, Casa de Campo, parámetro Partículas <10um" )
+autoplot(stl_24$`14`, main="Estación 24, Casa de Campo, parámetro Ozono")
+```
+
+
+# Descomposición de serie temporal mensual para la estación 60, Plaza Tres Olivos. 
+
+Se trata de una estación de tipo "Urbana Fondo". Hemos representado sus respectivos parámetros que son Dióxido de nitrógeno (8), Particulas <10um (10), Ozono (14).
+
+```{r, echo=FALSE}
+
+df_60 <- df%>%filter(estacion==60) 
+tss_60 <- tapply(df_60$valor, df_60$magnitud, ts, start=c(2018,1), end=c(2021,3), frequency = 12)
+stl_60 <- lapply(tss_60, stl, s.window="periodic", robust=TRUE)
+
+autoplot(stl_60$`8`, main="Estación 60, Plaza Tres Olivos, parámetro Dióxido de Nitrógeno")
+autoplot(stl_60$`10`, main="Estación 60, Plaza Tres Olivos,parámetro Partículas <10um")
+autoplot(stl_60$`14`, main="Estación 60, Plaza Tres Olivos, parámetro Ozono")
+```
+
+
+# Descomposición de serie temporal diaria para la estación 8, Escuelas Aguirre.
+
+```{r, echo=FALSE}
+
+df_8_dia <- df%>%filter(estacion==8) 
+tss_8_dia <- tapply(df_8_dia$valor, df_8$magnitud, ts, start=c(2018,1), end=c(2021,4), frequency = 365)
+stl_8_dia <- lapply(tss_8_dia, stl, s.window="periodic", robust=TRUE)
+
+# Estructura interna de la Descomposición
+#str(dcs_8)
+
+
+autoplot(stl_8_dia$`8`, main="Estación 8, Escuelas Aguirre, parámetro Dióxido de Nitrógeno")
+autoplot(stl_8_dia$`9`, main="Estación 8, Escuelas Aguirre, parámetro Partículas <2.5um")
+autoplot(stl_8_dia$`10`, main="Estación 8, Escuelas Aguirre, parámetro Partículas <10um")
+autoplot(stl_8_dia$`14`, main="Estación 8, Escuelas Aguirre, parámetro Ozono")
+
+```
+
+
+
+# Descomposición de serie temporal diaria para la estación 24, Casa Campo.
+
+```{r, echo=FALSE}
+
+df_24_dia <- df%>%filter(estacion==24) 
+tss_24_dia <- tapply(df_24_dia$valor, df_24$magnitud, ts, start=c(2018,1), end=c(2021,4), frequency = 365)
+stl_24_dia <- lapply(tss_24_dia, stl, s.window="periodic", robust=TRUE)
+
+
+autoplot(stl_24_dia$`8`, main="Estación 24, Casa de Campo, parámetro Dióxido de Nitrógeno")
+autoplot(stl_24_dia$`9`, main="Estación 24, Casa de Campo, parámetro Partículas <2.5um")
+autoplot(stl_24_dia$`10`,main="Estación 24, Casa de Campo, parámetro Partículas <10um" )
+autoplot(stl_24_dia$`14`, main="Estación 24, Casa de Campo, parámetro Ozono")
+```
+
+
+# Descomposición de serie temporal diaria para la estación 60, Plaza Tres Olivos. 
+
+```{r, echo=FALSE}
+
+df_60_dia <- df%>%filter(estacion==60) 
+tss_60_dia <- tapply(df_60_dia$valor, df_60$magnitud, ts, start=c(2018,1), end=c(2021,3), frequency = 365)
+stl_60_dia <- lapply(tss_60_dia, stl, s.window="periodic", robust=TRUE)
+
+autoplot(stl_60_dia$`8`, main="Estación 60, Plaza Tres Olivos, parámetro Dióxido de Nitrógeno")
+autoplot(stl_60_dia$`10`, main="Estación 60, Plaza Tres Olivos,parámetro Partículas <10um")
+autoplot(stl_60_dia$`14`, main="Estación 60, Plaza Tres Olivos, parámetro Ozono")
+```
+
+
+
+# Modelos ARIMA
+
+
+
+# Series temporales de la estación 60 que se predicirán: magnitud 8= Dioxido de Nitrógeno, magnitud 10=Particulas<10, magnitud 14=ozono
+
+```{r, echo=FALSE}
+tss_60_8<- tss_60$'8'
+tss_60_10<- tss_60$'10'
+tss_60_14<- tss_60$'14'
+```
+
+
+# Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
+
+```{r, echo=FALSE}
+# Ejemplo modelo para la magnitud 8 en la estación 60 
+modelo60_8 <- auto.arima(tss_60_8, trace = TRUE)
+print(summary(modelo60_8))
+```
+
+
+# Realizamos predicciones  magnitud 8, Dióxido de nitrógeno, en la estación 60 
+
+```{r, echo=FALSE}
+prediccion60_8 <- forecast(modelo60_8, 6, level=95)
+
+
+plot(prediccion60_8, main="Estación 60 - Predicción Dióxido de nitrógeno (8)")
+summary(prediccion60_8)
+``` 
+Ruido blanco: es una secuencia de variables aleatorias de media cero, varianza constante y covarianzas nula. Esto ssignifica que ningún modelo podrá ajustar los valores de la raíz cuadrada del parámetro de Dióxido de Nitrógeno.
+
+
+
+
+# Realizamos nuevo filtrado de fecha para separar la serie de Dióxido de Nitrógeno: guardamos sólo los datos desde Marzo de 2018 hasta Marzo 2020
+
+```{r, echo=FALSE}
+df2<- filter(df, fecha>="2018-03-01" & fecha<="2020-03-31")
+```
+
+
+
+# Construcción de las series desde Marzo de 2018 hasta Marzo de 2020, utilizamos dos años completos.
+
+
+```{r}
+puntos5<- unique(df2$nombre_estacion)
+
+for (punto in puntos5){
+
+muestra_2 <- df2%>% filter(nombre_estacion==punto & magnitud == 8)
+serie_muestra_2 <- ts(start= min(muestra_2$fecha), end=max(muestra_2$fecha),muestra_2$valor)
+
+
+plot <- ggplot(muestra_2, aes(x=fecha, y=valor)) +
+  geom_line(aes(col=as.factor(nombre_magnitud)))+ theme_minimal()+ ggtitle(punto)+
+  xlab("Fecha")+ylab("Valor")+labs(color="Magnitud")
+print(plot)
+}
+```
+
+
+# Descomposición de los datos de marzo 2018 - marzo 2020
+
+```{r, echo=FALSE}
+
+df2_60 <- df2%>%filter(estacion==60) 
+tss2_60 <- tapply(df2_60$valor, df2_60$magnitud, ts, start=c(2018,3),end=c(2020,3), frequency=12)
+
+stl2_60<- lapply(tss2_60, stl, s.window="periodic", robust=TRUE)
+
+
+autoplot(stl2_60$`8`, main="Estación 60, Plaza Tres Olivos, parámetro Dióxido de Nitrógeno")
+
+#autoplot(stl_60_Marzo2020$`10`, main="Estación 60, Plaza Tres Olivos,parámetro Partículas <10um")
+#(stl_60_Marzo2020$`14`, main="Estación 60, Plaza Tres Olivos, parámetro Ozono")
+
+```
+
+
+
+# Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
+
+```{r, echo=FALSE}
+# Ejemplo modelo para la magnitud  en la estación 60 
+tss2_60_8<- tss2_60$'8'
+modelo2_60_8 <- auto.arima(tss2_60_8, trace = TRUE, lambda = 0)
+print(summary(modelo2_60_8))
+```
+
+
+# Realizamos predicciones utilizando el modelo elaborado anteriormente del período marzo 2018 hasta marzo 2020
+
+```{r, echo=FALSE}
+prediccion2_60_8 <- forecast(modelo2_60_8, 12, level=95)
+
+summary(prediccion2_60_8)
+
+plot(prediccion2_60_8, main="Estación 60 - Predicción Dióxido de nitrógeno (8)")
+
+```
+
+```{r, echo=FALSE}
+# Creamos una secuencia de fecha 
+fecha <- seq(as.Date("2020-4-1"), as.Date("2021-3-1"), by = "month")
+#fecha <- zoo::as.yearmon(fecha, "%m-%Y")  
+
+fecha_tabla <- format(fecha, "%m-%Y")
+
+# Elaboramos un dataframe con los valores realeces y las predicciones 
+tabla  <- data.frame(fecha = fecha_tabla, valor_actual = tss_60$`8`[28:39], valor_prediccion = prediccion2_60_8)
+
+View(tabla)
+
+```
+
+
+# Plot Comparativo de las valores reales vs valores predichos del Dióxido de nitrógeno(8)
+
+```{r, echo=FALSE}
+
+grafico <- data.frame(fecha = fecha, actual = tss_60$`8`[28:39], prediccion = prediccion2_60_8)
+
+grafico %>% ggplot()+
+  geom_line(aes(fecha, actual, color = "actual"))+labs(color="")+
+  geom_line(aes(fecha, prediccion.Point.Forecast , color="prediccion"))+ylab("Valor")+
+  ggtitle("Gráfico comparativo de los valores reales vs predichos del Dióxido de nitrógeno")
+
+```
+
+
+
+# Elaboración modelo magnitud 10, Particulas <10um, estación 60 
+
+```{r, echo=FALSE}
+
+# Ejemplo modelo para la magnitud 10 en la estación 60 
+modelo60_10 <- auto.arima(tss_60_10, trace = TRUE, lambda = 0)
+print(summary(modelo60_10))
+```
+
+
+# Predicción la magnitud 10, Partículas <10um, estación 60 
+
+
+```{r, echo=FALSE}
+prediccion60_10 <- forecast(modelo60_10, 6, level=95)
+plot(prediccion60_10, main="Estación 60 - Predicción  Partículas <10um (10)")
+summary(prediccion60_10)
+``` 
+
+
+# Elaboración modelo magnitud 14, Ozono, estación 60 
+
+```{r, echo=FALSE}
+
+# Ejemplo modelo para la magnitud 14 en la estación 60 
+modelo60_14 <- auto.arima(tss_60_14, trace = TRUE, lambda=0)
+print(summary(modelo60_14))
+```
+
+
+# Predicción la maginitud 14, Ozono, estación 60 
+
+
+```{r, echo=FALSE}
+prediccion60_14 <- forecast(tss_60_14, 6, level=95)
+plot(prediccion60_14, main="Estación 60 - Predicción Ozono (14)")
+summary(prediccion60_14)
+```
+
+
+
+
