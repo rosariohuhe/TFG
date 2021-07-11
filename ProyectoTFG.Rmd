@@ -623,7 +623,6 @@ puntos5<- unique(df2$nombre_estacion)
 for (punto in puntos5){
 
 muestra_2 <- df2%>% filter(nombre_estacion==punto & magnitud == 8)
-serie_muestra_2 <- ts(start= min(muestra_2$fecha), end=max(muestra_2$fecha),muestra_2$valor)
 
 
 plot <- ggplot(muestra_2, aes(x=fecha, y=valor)) +
