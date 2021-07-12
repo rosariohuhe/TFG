@@ -289,7 +289,7 @@ muestra <- df%>% filter(nombre_estacion==punto)
 
 plot <- ggplot(muestra, aes(x=fecha, y=valor)) +
   geom_line(aes(col=as.factor(nombre_magnitud)))+ theme_minimal()+ ggtitle(punto)+
-  xlab("Fecha")+ylab("Valor")+labs(color="Magnitud")
+  xlab("Fecha")+ylab("Valor")+labs(color="")
 print(plot)
 }
 
@@ -330,7 +330,7 @@ mm8 <- ts_df(serie_muestra_mag8)
 
 
 plot_8 <- ggplot(mm8, aes(x=time, y=value)) +
-  geom_line(color="tomato2")+theme_minimal()+ ggtitle(punto)+
+  geom_point(color="tomato2", size=3)+theme_minimal()+ ggtitle(punto)+
   geom_hline(aes(yintercept=40, color="Valor límite media anual"))+
   scale_colour_manual(values = c("blue"))+labs(color="")+
   xlab("Fecha")+ylab("Valor Dioxido de Nitrógeno")
@@ -379,7 +379,7 @@ mm9 <- ts_df(ss)
 
 
 plot_9 <- ggplot(mm9, aes(x=time, y=value)) +
-  geom_line(color="blueviolet")+theme_minimal()+ ggtitle(punto)+
+  geom_point(color="blueviolet", size=3)+theme_minimal()+ ggtitle(punto)+
   geom_hline(aes(yintercept=25, color="Valor límite media anual"))+
   scale_colour_manual(values = c("blue"))+labs(color="")+
   xlab("Fecha")+ylab("Valor Particulas<2.5")
@@ -429,7 +429,7 @@ mm10 <- ts_df(serie_muestra_mag10)
 
 
 plot_10 <- ggplot(mm10, aes(x=time, y=value)) +
-  geom_line(color="cornflowerblue")+ theme_minimal()+ ggtitle(punto)+
+  geom_point(color="cornflowerblue", size=3)+ theme_minimal()+ ggtitle(punto)+
   geom_hline(aes(yintercept=40, color="Valor límite media anual"))+
   scale_colour_manual(values = c("green"))+labs(color="")+
   xlab("Fecha")+ylab("Valor Particulas<10um")
@@ -573,7 +573,7 @@ autoplot(stl_60_dia$`14`, main="Estación 60, Plaza Tres Olivos, parámetro Ozon
 
 
 
-# Series temporales de la estación 60 que se predicirán: magnitud 8= Dioxido de Nitrógeno, magnitud 10=Particulas<10, magnitud 14=ozono
+### Series temporales de la estación 60 que se predicirán: magnitud 8= Dioxido de Nitrógeno, magnitud 10=Particulas<10, magnitud 14=ozono
 
 ```{r, echo=FALSE}
 tss_60_8<- tss_60$'8'
@@ -582,7 +582,7 @@ tss_60_14<- tss_60$'14'
 ```
 
 
-# Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
+### Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
 
 ```{r, echo=FALSE}
 # Ejemplo modelo para la magnitud 8 en la estación 60 
@@ -591,7 +591,7 @@ print(summary(modelo60_8))
 ```
 
 
-# Realizamos predicciones  magnitud 8, Dióxido de nitrógeno, en la estación 60 
+### Realizamos predicciones  magnitud 8, Dióxido de nitrógeno, en la estación 60 
 
 ```{r, echo=FALSE}
 prediccion60_8 <- forecast(modelo60_8, 6, level=95)
@@ -605,7 +605,7 @@ Ruido blanco: es una secuencia de variables aleatorias de media cero, varianza c
 
 
 
-# Realizamos nuevo filtrado de fecha para separar la serie de Dióxido de Nitrógeno: guardamos sólo los datos desde Marzo de 2018 hasta Marzo 2020
+### Realizamos nuevo filtrado de fecha para separar la serie de Dióxido de Nitrógeno: guardamos sólo los datos desde Marzo de 2018 hasta Marzo 2020
 
 ```{r, echo=FALSE}
 df2<- filter(df, fecha>="2018-03-01" & fecha<="2020-03-31")
@@ -613,7 +613,7 @@ df2<- filter(df, fecha>="2018-03-01" & fecha<="2020-03-31")
 
 
 
-# Construcción de las series desde Marzo de 2018 hasta Marzo de 2020, utilizamos dos años completos.
+### Construcción de las series desde Marzo de 2018 hasta Marzo de 2020, utilizamos dos años completos.
 
 
 ```{r}
@@ -632,7 +632,7 @@ print(plot)
 ```
 
 
-# Descomposición de los datos de marzo 2018 - marzo 2020
+### Descomposición de los datos de marzo 2018 - marzo 2020
 
 ```{r, echo=FALSE}
 
@@ -651,7 +651,7 @@ autoplot(stl2_60$`8`, main="Estación 60, Plaza Tres Olivos, parámetro Dióxido
 
 
 
-# Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
+### Elaboramos el modelo magnitud 8, Dióxido de nitrógeno, en la estación 60 
 
 ```{r, echo=FALSE}
 # Ejemplo modelo para la magnitud  en la estación 60 
@@ -661,7 +661,7 @@ print(summary(modelo2_60_8))
 ```
 
 
-# Realizamos predicciones utilizando el modelo elaborado anteriormente del período marzo 2018 hasta marzo 2020
+### Realizamos predicciones utilizando el modelo elaborado anteriormente del período marzo 2018 hasta marzo 2020
 
 ```{r, echo=FALSE}
 prediccion2_60_8 <- forecast(modelo2_60_8, 12, level=95)
@@ -687,7 +687,7 @@ View(tabla)
 ```
 
 
-# Plot Comparativo de las valores reales vs valores predichos del Dióxido de nitrógeno(8)
+### Plot Comparativo de las valores reales vs valores predichos del Dióxido de nitrógeno(8)
 
 ```{r, echo=FALSE}
 
@@ -702,7 +702,7 @@ grafico %>% ggplot()+
 
 
 
-# Elaboración modelo magnitud 10, Particulas <10um, estación 60 
+### Elaboración modelo magnitud 10, Particulas <10um, estación 60 
 
 ```{r, echo=FALSE}
 
@@ -712,7 +712,7 @@ print(summary(modelo60_10))
 ```
 
 
-# Predicción la magnitud 10, Partículas <10um, estación 60 
+### Predicción la magnitud 10, Partículas <10um, estación 60 
 
 
 ```{r, echo=FALSE}
@@ -722,7 +722,7 @@ summary(prediccion60_10)
 ``` 
 
 
-# Elaboración modelo magnitud 14, Ozono, estación 60 
+### Elaboración modelo magnitud 14, Ozono, estación 60 
 
 ```{r, echo=FALSE}
 
@@ -732,7 +732,7 @@ print(summary(modelo60_14))
 ```
 
 
-# Predicción la maginitud 14, Ozono, estación 60 
+### Predicción la maginitud 14, Ozono, estación 60 
 
 
 ```{r, echo=FALSE}
